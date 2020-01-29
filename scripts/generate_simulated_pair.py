@@ -38,7 +38,7 @@ if __name__ == "__main__":
         sigma_dt = 100  # Millseconds
         ask = copy.deepcopy(S0) + spread / 2.0
         bid = copy.deepcopy(S0) - spread / 2.0
-        days = month_weekdays(2014, 1)  # January 2014
+        days = month_weekdays(2020, 1)  # January 2020
         current_time = datetime.datetime(
             days[0].year, days[0].month, days[0].day, 0, 0, 0,
         )

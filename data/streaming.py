@@ -6,18 +6,16 @@ import json
 
 import requests
 
+from qsforex import settings
 from qsforex.event.event import TickEvent
 from qsforex.data.price import PriceHandler
 
 
 class StreamingForexPrices(PriceHandler):
-    def __init__(
-        self, domain, access_token, 
-        account_id, pairs, events_queue
-    ):
-        self.domain = domain
-        self.access_token = access_token
-        self.account_id = account_id
+    def __init__(pairs, events_queue):
+        self.domain = settings.API_DOMAIN
+        self.access_token = settings.ACCESS_TOKEN
+        self.account_id = settings.ACCOUNT_ID
         self.events_queue = events_queue
         self.pairs = pairs
         self.prices = self._set_up_prices_dict()

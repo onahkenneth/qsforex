@@ -190,4 +190,3 @@ class Portfolio(object):
             self.logger.info("Portfolio Balance: %s" % self.balance)
         else:
             self.logger.info("Unable to execute order as price data was insufficient.")
-        
