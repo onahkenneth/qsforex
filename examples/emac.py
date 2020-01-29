@@ -1,6 +1,11 @@
 from __future__ import print_function
 
-from qsforex.backtest.backtest import Backtest
+try:
+    import Queue as queue
+except ImportError:
+    import queue
+
+from qsforex.backtest.practice import Practice
 from qsforex.execution.execution import OANDAExecutionHandler
 from qsforex.portfolio.portfolio import Portfolio
 from qsforex import settings
@@ -17,12 +22,24 @@ if __name__ == "__main__":
         "short_window": 500,
         "long_window": 2000
     }
-
+    events = queue.Queue()
+    data_handler = StreamingForexPrices(
+        settings.API_DOMAIN,
+        settings.ACCESS_TOKEN,
+        settings.ACCOUNT_ID,
+        pairs,
+        events
+    )
+    execution = OANDAExecutionHandler(
+        settings.API_DOMAIN,
+        settings.ACCESS_TOKEN,
+        settings.ACCOUNT_ID
+    )
     # Create and execute the back test
-    back_test = Backtest(
-        pairs, StreamingForexPrices,
+    practice = Practice(
+        pairs, data_handler,
         ExponentialMovingAverageCrossStrategy, strategy_params,
-        Portfolio, OANDAExecutionHandler,
+        Portfolio, execution, events,
         equity=settings.EQUITY
     )
-    back_test.simulate_trading()
+    practice.simulate_trading()

@@ -12,10 +12,13 @@ from qsforex.data.price import PriceHandler
 
 
 class StreamingForexPrices(PriceHandler):
-    def __init__(pairs, events_queue):
-        self.domain = settings.API_DOMAIN
-        self.access_token = settings.ACCESS_TOKEN
-        self.account_id = settings.ACCOUNT_ID
+    def __init__(
+            self, domain, access_token,
+            account_id, pairs, events_queue
+    ):
+        self.domain = domain
+        self.access_token = access_token
+        self.account_id = account_id
         self.events_queue = events_queue
         self.pairs = pairs
         self.prices = self._set_up_prices_dict()
@@ -43,10 +46,9 @@ class StreamingForexPrices(PriceHandler):
         try:
             requests.packages.urllib3.disable_warnings()
             s = requests.Session()
-            url = "https://" + self.domain + "/v1/prices"
+            url = "https://" + self.domain + "/v3/accounts/" + self.account_id + "/pricing"
             headers = {'Authorization' : 'Bearer ' + self.access_token}
-            params = {'instruments' : pair_list, 'accountId' : self.account_id}
-            req = requests.Request('GET', url, headers=headers, params=params)
+            req = requests.Request('GET', url, headers=headers)
             pre = req.prepare()
             resp = s.send(pre, stream=True, verify=False)
             return resp

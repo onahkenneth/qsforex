@@ -17,16 +17,16 @@ class Practice(object):
     def __init__(
         self, pairs, data_handler, strategy,
         strategy_params, portfolio, execution,
-        equity=100000.0, heartbeat=0.0,
+        events, equity=100000.0, heartbeat=0.0,
         max_iters=10000000000
     ):
         """
         Initialises the practice.
         """
         self.pairs = pairs
-        self.events = queue.Queue()
+        self.events = events
         self.csv_dir = settings.CSV_DATA_DIR
-        self.ticker = data_handler(self.pairs, self.events)
+        self.ticker = data_handler
         self.strategy_params = strategy_params
         self.strategy = strategy(
             self.pairs, self.events, **self.strategy_params
@@ -37,7 +37,7 @@ class Practice(object):
         self.portfolio = portfolio(
             self.ticker, self.events, equity=self.equity, backtest=True
         )
-        self.execution = execution()
+        self.execution = execution
 
     def _run_backtest(self):
         """
@@ -50,11 +50,11 @@ class Practice(object):
         """
         print("Running Backtest...")
         iters = 0
-        while iters < self.max_iters and self.ticker.continue_backtest:
+        while iters < self.max_iters:
             try:
                 event = self.events.get(False)
             except queue.Empty:
-                self.ticker.stream_next_tick()
+                self.ticker.stream_to_queue()
             else:
                 if event is not None:
                     if event.type == 'TICK':
