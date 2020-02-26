@@ -6,21 +6,21 @@ import json
 
 import requests
 
-from qsforex import settings
 from qsforex.event.event import TickEvent
 from qsforex.data.price import PriceHandler
 
 
-class StreamingForexPrices(PriceHandler):
+class CandleSticks(PriceHandler):
     def __init__(
-            self, domain, access_token,
-            account_id, pairs, events_queue
+            self, domain, access_token, account_id,
+            pairs, events_queue, start_dt
     ):
         self.domain = domain
         self.access_token = access_token
         self.account_id = account_id
         self.events_queue = events_queue
         self.pairs = pairs
+        self.start_dt = start_dt
         self.prices = self._set_up_prices_dict()
         self.logger = logging.getLogger(__name__)
 
@@ -46,9 +46,14 @@ class StreamingForexPrices(PriceHandler):
         try:
             requests.packages.urllib3.disable_warnings()
             s = requests.Session()
-            url = "https://" + self.domain + "/v1/prices"
+            url = "https://" + self.domain + "/v3/instruments/" + pair_list + "/candles"
             headers = {'Authorization': 'Bearer ' + self.access_token}
-            params = {'instruments': pair_list, 'accountId': self.account_id}
+            params = {
+                'count': 1,
+                'price': 'BA',
+                'from': self.start_dt.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+                'granularity': 'D'
+            }
             req = requests.Request('GET', url, headers=headers, params=params)
             pre = req.prepare()
             resp = s.send(pre, stream=True, verify=False)
@@ -71,15 +76,16 @@ class StreamingForexPrices(PriceHandler):
                         "Caught exception when converting message into json: %s" % str(e)
                     )
                     return
-                if "instrument" in msg or "tick" in msg:
+                if "instrument" in msg and 'candles' in msg:
                     self.logger.debug(msg)
-                    getcontext().rounding = ROUND_HALF_DOWN 
-                    instrument = msg["tick"]["instrument"].replace("_", "")
-                    time = msg["tick"]["time"]
-                    bid = Decimal(str(msg["tick"]["bid"])).quantize(
+                    getcontext().rounding = ROUND_HALF_DOWN
+                    candle = msg['candles'][0]
+                    instrument = msg["instrument"].replace("_", "")
+                    time = candle["time"]
+                    bid = Decimal(str(candle["bid"]["c"])).quantize(
                         Decimal("0.00001")
                     )
-                    ask = Decimal(str(msg["tick"]["ask"])).quantize(
+                    ask = Decimal(str(candle["ask"]["c"])).quantize(
                         Decimal("0.00001")
                     )
                     self.prices[instrument]["bid"] = bid

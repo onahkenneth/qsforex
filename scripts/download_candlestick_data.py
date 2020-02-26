@@ -1,5 +1,10 @@
 from __future__ import print_function
 
+try:
+    import Queue as queue
+except ImportError:
+    import queue
+
 from decimal import Decimal, getcontext, ROUND_HALF_DOWN
 import logging
 import json
@@ -9,15 +14,23 @@ import pytz
 import requests
 
 from datetime import datetime
-from qsforex.data.price import PriceHandler
+from qsforex.data.candle import CandleSticks
 from qsforex import settings
 
 
-class HistoricCandlesticks(PriceHandler):
+class HistoricCandlesticks(CandleSticks):
     def __init__(
             self, start_dt, end_dt, domain,
             access_token, account_id, pair
     ):
+        super(HistoricCandlesticks, self).__init__(
+            domain,
+            access_token,
+            account_id,
+            pair,
+            queue.Queue(),
+            start_dt
+        )
         self.start_dt = start_dt
         self.end_dt = end_dt
         self.domain = domain
@@ -51,7 +64,7 @@ class HistoricCandlesticks(PriceHandler):
     def download_data(self):
         response = self.connect_to_api()
         if response.status_code != 200:
-            return
+            return False
         for line in response.iter_lines(1):
             if line:
                 try:
@@ -61,7 +74,7 @@ class HistoricCandlesticks(PriceHandler):
                     self.logger.error(
                         "Caught exception when converting message into json: %s" % str(e)
                     )
-                    return
+                    return False
                 if "instrument" in msg and "candles" in msg:
                     self.logger.debug(msg)
                     getcontext().rounding = ROUND_HALF_DOWN
@@ -100,12 +113,7 @@ if __name__ == "__main__":
 
         start_date = timezone.localize(datetime.strptime(start_date, "%Y-%m-%d"))
         end_date = timezone.localize(datetime.strptime(end_date, "%Y-%m-%d"))
-    except IndexError:
-        print("You need to enter a start date, end date and currency pair, " +
-              " e.g. 2019-01-01 2019-12-31 GBPUSD, as a command line parameter.")
-        exit()
 
-    try:
         candle_stick = HistoricCandlesticks(
             start_date,
             end_date,
@@ -114,9 +122,14 @@ if __name__ == "__main__":
             settings.ACCOUNT_ID,
             pair
         )
-        candle_stick.download_data()
+        if candle_stick.download_data() is not False:
+            print("Candlesticks data downloaded successfully")
+        else:
+            print("Candlesticks data download was unsuccessfully")
+    except IndexError:
+        print("You need to enter a start date, end date and currency pair, " +
+              " e.g. 2019-01-01 2019-12-31 GBPUSD, as a command line parameter.")
+        exit()
     except Exception:
         print("An error was encountered while processing request")
         exit()
-
-    print("Candlesticks data downloaded successfully")

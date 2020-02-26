@@ -18,7 +18,7 @@ class Practice(object):
         self, pairs, data_handler, strategy,
         strategy_params, portfolio, execution,
         events, equity=100000.0, heartbeat=0.0,
-        max_iters=10000000000
+        max_iters=10000
     ):
         """
         Initialises the practice.
